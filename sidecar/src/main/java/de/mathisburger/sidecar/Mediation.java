@@ -1,4 +1,4 @@
-package org.example.sidecar;
+package de.mathisburger.sidecar;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

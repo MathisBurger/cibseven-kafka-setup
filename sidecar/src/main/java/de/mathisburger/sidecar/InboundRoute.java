@@ -1,4 +1,4 @@
-package org.example.sidecar;
+package de.mathisburger.sidecar;
 
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
