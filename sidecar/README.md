@@ -14,7 +14,7 @@ everything:
 | What                                              | Name                |
 |----------------------------------------------------|----------------------|
 | BPMN external-task topic (on your service task)    | `book-hotel`         |
-| Kafka topic your microservice **consumes** commands from | `book-hotel.commands` |
+| Kafka topic your microservice **consumes** commands from | `book-hotel` |
 | Kafka topic your microservice **publishes** to      | `book-hotel.engine`  |
 | BPMN message name (catch event and/or start event) | `book-hotel.engine`  |
 
@@ -78,7 +78,7 @@ sidecar doesn't care which one ends up matching; the engine decides.
 ## Building the microservice
 
 **Consume commands:**
-- Kafka topic: `<topic>.commands`
+- Kafka topic: `<topic>.`
 - Key: the business key of the process instance that asked for the work
 - Value: a flat JSON object of the process variables at the time the task
   was picked up, e.g.:
@@ -127,43 +127,6 @@ step 1's external task, model a message start event named
 `onboard-customer.engine`, and have any microservice publish
 `{"customerName": "Ada"}` keyed by a new business key like `C-1` whenever it
 wants to kick off a new instance.
-
-## Trying it locally
-
-```bash
-docker compose up --build
-```
-
-- Webapps: http://localhost:8080/webapp (login `demo` / `demo`)
-- REST API: http://localhost:8080/engine-rest
-
-You can stand in for a microservice with the Kafka CLI to sanity-check a
-process model before the real microservice exists:
-
-```bash
-# watch commands land
-docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
-  --bootstrap-server kafka:9092 --topic reserve-flight.commands --from-beginning \
-  --property print.key=true --property key.separator=" | "
-
-# send a reply / trigger
-docker compose exec -T kafka /opt/kafka/bin/kafka-console-producer.sh \
-  --bootstrap-server kafka:9092 --topic reserve-flight.engine \
-  --property "parse.key=true" --property "key.separator=|" \
-  <<< 'T-1|{"flightConfirmation":"FL-999"}'
-```
-
-You can also sanity-check an HTTP Connector's URL/headers/payload before
-wiring it into a BPMN model, by hitting the sidecar's dispatch endpoint
-directly (published to the host at `localhost:8090`; from inside the
-compose network, e.g. from the connector itself, it's `sidecar:8080`):
-
-```bash
-curl -X POST http://localhost:8090/dispatch/reserve-flight \
-  -H "Content-Type: application/json" \
-  -H "Business-Key: T-1" \
-  -d '{"origin":"BER","destination":"CDG","passenger":"Ada"}'
-```
 
 ## Things to keep in mind
 
