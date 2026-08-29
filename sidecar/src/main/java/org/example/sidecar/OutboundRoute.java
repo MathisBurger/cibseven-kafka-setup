@@ -36,7 +36,7 @@ public class OutboundRoute extends RouteBuilder {
 
         from("direct:publishCommand")
             .routeId("outbound-publish")
-            .process(Mediation::taskToCommand)   // sets body=command JSON, headers: taskId + kafkaTopic + kafka key
+            .process(Mediation::taskToCommand)
             .toD("kafka:${header.kafkaTopic}")
             .log(LoggingLevel.INFO, "published command for external task ${header.taskId} on ${header.kafkaTopic}")
             .setHeader("CamelHttpMethod", constant("POST"))

@@ -31,11 +31,15 @@
   <dependencies>
     <!-- Camel Main: run standalone, no Spring. -->
     <dependency><groupId>org.apache.camel</groupId><artifactId>camel-main</artifactId></dependency>
-    <!-- Poll trigger for fetchAndLock. -->
+    <!-- Poll trigger for the external-task fetchAndLock path. -->
     <dependency><groupId>org.apache.camel</groupId><artifactId>camel-timer</artifactId></dependency>
-    <!-- Talk to the CIBseven REST API. -->
+    <!-- Embedded HTTP server: an alternative, push-style path in via the engine's HTTP Connector. -->
+    <dependency><groupId>org.apache.camel</groupId><artifactId>camel-jetty</artifactId></dependency>
+    <!-- Rest DSL model (path params, etc.) bound to the jetty component above. -->
+    <dependency><groupId>org.apache.camel</groupId><artifactId>camel-rest</artifactId></dependency>
+    <!-- HTTP client: talking to the CIBseven REST API (fetchAndLock/complete/message). -->
     <dependency><groupId>org.apache.camel</groupId><artifactId>camel-http</artifactId></dependency>
-    <!-- Command/reply transport. -->
+    <!-- Command/event transport. -->
     <dependency><groupId>org.apache.camel</groupId><artifactId>camel-kafka</artifactId></dependency>
     <!-- JSON (un)marshalling; also pulls in jackson-databind for the mapper. -->
     <dependency><groupId>org.apache.camel</groupId><artifactId>camel-jackson</artifactId></dependency>

@@ -9,15 +9,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public final class Mediation {
 
     private static final ObjectMapper M = new ObjectMapper();
-
     public static final String ENGINE_SUFFIX = ".engine";
+
+    public static final String BUSINESS_KEY_HEADER = "Business-Key";
 
     private Mediation() {
     }
+
     public static void fetchAndLockRequest(Exchange ex) throws Exception {
         String topic = ex.getProperty("topic", String.class);
         String workerId = ex.getContext().resolvePropertyPlaceholders("{{worker.id}}");
@@ -66,6 +67,29 @@ public final class Mediation {
         ex.getIn().setBody(M.writeValueAsString(command));
     }
 
+    public static void httpToCommand(Exchange ex) throws Exception {
+        String topic = ex.getIn().getHeader("topic", String.class);
+        if (topic == null || topic.isBlank()) {
+            throw new IllegalArgumentException("dispatch request is missing the topic path segment");
+        }
+
+        String businessKey = ex.getIn().getHeader(BUSINESS_KEY_HEADER, String.class);
+        if (businessKey == null || businessKey.isBlank()) {
+            throw new IllegalArgumentException("dispatch request for topic " + topic
+                    + " is missing the " + BUSINESS_KEY_HEADER + " header");
+        }
+
+        JsonNode body = M.readTree(ex.getIn().getBody(String.class));
+        if (!body.isObject()) {
+            throw new IllegalArgumentException("dispatch request for topic " + topic
+                    + " must have a JSON object body");
+        }
+
+        ex.getIn().setHeader("kafkaTopic", topic);
+        ex.getIn().setHeader(KafkaConstants.KEY, businessKey);
+        ex.getIn().setBody(M.writeValueAsString(body));
+    }
+
     public static void messageToCorrelation(Exchange ex) throws Exception {
         String topic = ex.getIn().getHeader(KafkaConstants.TOPIC, String.class);
         String businessKey = ex.getIn().getHeader(KafkaConstants.KEY, String.class);
@@ -88,7 +112,6 @@ public final class Mediation {
         ex.getIn().setBody(M.writeValueAsString(correlation));
     }
 
-    /** CIBseven typed-variable wrapper, with the type inferred from the JSON node. */
     private static Map<String, Object> typed(JsonNode value) {
         String type;
         Object rawValue;
@@ -108,7 +131,6 @@ public final class Mediation {
             type = "Null";
             rawValue = null;
         } else {
-            // object/array: pass through as an opaque JSON string
             type = "Json";
             rawValue = value.toString();
         }
@@ -118,7 +140,6 @@ public final class Mediation {
         return v;
     }
 
-    /** Unwrap CIBseven's {"value": ..., "type": ...} variable shape to a plain value. */
     @SuppressWarnings("unchecked")
     private static Object unwrap(Object v) {
         if (v instanceof Map) {

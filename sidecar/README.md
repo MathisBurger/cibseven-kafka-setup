@@ -20,7 +20,10 @@ everything:
 
 Nothing else is required — no registration, no config file, no deployment
 step for the sidecar itself. As soon as a process definition with a
-matching external-task topic or message name is deployed, it works.
+matching external-task topic or message name is deployed, it works. If you
+trigger the command via the sidecar's HTTP dispatch endpoint instead of an
+external task (see below), that same capability name is the path segment:
+`POST /dispatch/book-hotel`.
 
 ## The business key
 
@@ -36,9 +39,26 @@ Every process instance must have a **business key**
 
 ## Modeling the process (BPMN)
 
-**To ask a capability to do something:** add a service task, external task
-type, with a topic name (e.g. `book-hotel`). All process variables visible
-at that point are sent to the capability — you don't need to list them.
+**To ask a capability to do something**, pick one of two service task types
+— both land on the exact same `<topic>.commands` message, so your
+microservice never knows or cares which one was used:
+
+- **External task** (pull): topic name `book-hotel`. All process variables
+  visible at that point are sent to the capability automatically — you
+  don't need to list them. The sidecar picks the task up on its own; if the
+  sidecar or Kafka is briefly unavailable, the task just waits and gets
+  picked up on the next attempt. Prefer this by default.
+- **HTTP Connector** (push): configure the service task's connector with
+  - URL: `http://sidecar:8080/dispatch/book-hotel`
+  - Method: `POST`
+  - Header `Business-Key`: `${execution.processBusinessKey}`
+  - Payload: whichever process variables you want to send, e.g.
+    `{"origin": "${origin}", "destination": "${destination}"}`
+
+  This calls the sidecar directly and synchronously, with no polling delay,
+  but you have to list the variables to send yourself, and the process
+  briefly waits on the call while it's in flight. Prefer this only where
+  that immediacy matters more than the simplicity of the external task.
 
 **To wait for the capability's answer:** add a message catch event whose
 message name is exactly `<topic>.engine` (e.g. `book-hotel.engine`). When
@@ -131,6 +151,18 @@ docker compose exec -T kafka /opt/kafka/bin/kafka-console-producer.sh \
   --bootstrap-server kafka:9092 --topic reserve-flight.engine \
   --property "parse.key=true" --property "key.separator=|" \
   <<< 'T-1|{"flightConfirmation":"FL-999"}'
+```
+
+You can also sanity-check an HTTP Connector's URL/headers/payload before
+wiring it into a BPMN model, by hitting the sidecar's dispatch endpoint
+directly (published to the host at `localhost:8090`; from inside the
+compose network, e.g. from the connector itself, it's `sidecar:8080`):
+
+```bash
+curl -X POST http://localhost:8090/dispatch/reserve-flight \
+  -H "Content-Type: application/json" \
+  -H "Business-Key: T-1" \
+  -d '{"origin":"BER","destination":"CDG","passenger":"Ada"}'
 ```
 
 ## Things to keep in mind
