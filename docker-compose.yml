@@ -63,6 +63,11 @@ services:
     ports:
       - "8080:8080"
 
+  sidecar:
+    build:
+      context: ./sidecar
+      dockerfile: Dockerfile
+
 volumes:
   zookeeper-data:
     driver: local
