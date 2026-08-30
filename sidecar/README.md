@@ -11,12 +11,12 @@ things, what messages look like, and how to model both directions.
 Pick a name for your capability, e.g. `book-hotel`. That one name drives
 everything:
 
-| What                                              | Name                |
-|----------------------------------------------------|----------------------|
-| BPMN external-task topic (on your service task)    | `book-hotel`         |
-| Kafka topic your microservice **consumes** commands from | `book-hotel` |
-| Kafka topic your microservice **publishes** to      | `book-hotel.engine`  |
-| BPMN message name (catch event and/or start event) | `book-hotel.engine`  |
+| What                                                      | Name           |
+|-------------------------------------------------------------|----------------|
+| BPMN external-task topic (on your service task)              | `book-hotel`   |
+| Kafka topic your microservice **consumes** commands from      | `book-hotel`   |
+| Kafka topic your microservice **publishes** to                 | `book-hotel.engine` |
+| BPMN message name (catch event and/or start event)             | `book-hotel`   |
 
 Nothing else is required — no registration, no config file, no deployment
 step for the sidecar itself. As soon as a process definition with a
@@ -24,6 +24,11 @@ matching external-task topic or message name is deployed, it works. If you
 trigger the command via the sidecar's HTTP dispatch endpoint instead of an
 external task (see below), that same capability name is the path segment:
 `POST /dispatch/book-hotel`.
+
+Every Kafka topic ending in `.engine` is forwarded to the engine as a
+message correlation — always with the `.engine` suffix stripped off to get
+the BPMN message name. A message published to `book-hotel.engine`
+correlates message name `book-hotel`, not `book-hotel.engine`.
 
 ## The business key
 
@@ -40,7 +45,7 @@ Every process instance must have a **business key**
 ## Modeling the process (BPMN)
 
 **To ask a capability to do something**, pick one of two service task types
-— both land on the exact same `<topic>.commands` message, so your
+— both land on the exact same `book-hotel` command message, so your
 microservice never knows or cares which one was used:
 
 - **External task** (pull): topic name `book-hotel`. All process variables
@@ -60,16 +65,16 @@ microservice never knows or cares which one was used:
   briefly waits on the call while it's in flight. Prefer this only where
   that immediacy matters more than the simplicity of the external task.
 
-**To wait for the capability's answer:** add a message catch event whose
-message name is exactly `<topic>.engine` (e.g. `book-hotel.engine`). When
-the reply arrives, every field in it becomes a process variable, and the
-flow continues from that point.
+**To wait for the capability's answer:** add a message catch event named
+`book-hotel` — the topic name, with no `.engine` suffix. When the message
+(published to Kafka topic `book-hotel.engine`) arrives, every field in it
+becomes a process variable, and the flow continues from that point.
 
 **To let a capability start a new process instead:** add a message *start*
-event whose message name is `<topic>.engine`. Nothing else about the model
-changes — a microservice publishing to that topic starts a brand new
-instance, with the message's fields as the instance's initial variables and
-its key as the instance's business key.
+event, also named `book-hotel`. Nothing else about the model changes — a
+microservice publishing to `book-hotel.engine` starts a brand new instance,
+with the message's fields as the instance's initial variables and its key
+as the instance's business key.
 
 A single topic name can be used for both a catch event (resume an existing
 case) and a start event (open a new one) if that fits your process — the
@@ -78,7 +83,7 @@ sidecar doesn't care which one ends up matching; the engine decides.
 ## Building the microservice
 
 **Consume commands:**
-- Kafka topic: `<topic>.`
+- Kafka topic: `book-hotel` (the capability name, no suffix)
 - Key: the business key of the process instance that asked for the work
 - Value: a flat JSON object of the process variables at the time the task
   was picked up, e.g.:
@@ -87,7 +92,7 @@ sidecar doesn't care which one ends up matching; the engine decides.
   ```
 
 **Publish the result (or start a flow):**
-- Kafka topic: `<topic>.engine`
+- Kafka topic: `book-hotel.engine`
 - Key: the business key — the same one the command carried, if you're
   answering it; a new one of your choosing, if you're starting a process
 - Value: a flat JSON object of whatever should become process variables,
@@ -103,11 +108,11 @@ topics.
 ## Worked example: a "flight" capability
 
 1. BPMN: a service task with external-task topic `reserve-flight`, followed
-   by a message catch event named `reserve-flight.engine`. The process is
-   started with business key `T-1` and variables `origin`, `destination`,
+   by a message catch event named `reserve-flight`. The process is started
+   with business key `T-1` and variables `origin`, `destination`,
    `passenger`.
 
-2. The sidecar publishes to `reserve-flight.commands`:
+2. The sidecar publishes to Kafka topic `reserve-flight`:
    ```
    key:   T-1
    value: {"origin":"BER","destination":"CDG","passenger":"Ada"}
@@ -120,13 +125,15 @@ topics.
    value: {"flightConfirmation":"FL-999"}
    ```
 
-4. The waiting instance resumes with `flightConfirmation = "FL-999"` set.
+4. The sidecar correlates message `reserve-flight` (the `.engine` suffix
+   stripped) and the waiting instance resumes with
+   `flightConfirmation = "FL-999"` set.
 
 For a capability that starts flows instead (e.g. `onboard-customer`): skip
 step 1's external task, model a message start event named
-`onboard-customer.engine`, and have any microservice publish
-`{"customerName": "Ada"}` keyed by a new business key like `C-1` whenever it
-wants to kick off a new instance.
+`onboard-customer`, and have any microservice publish
+`{"customerName": "Ada"}` to `onboard-customer.engine`, keyed by a new
+business key like `C-1` whenever it wants to kick off a new instance.
 
 ## Things to keep in mind
 

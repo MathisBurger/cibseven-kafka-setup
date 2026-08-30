@@ -102,13 +102,17 @@ public final class Mediation {
         Map<String, Object> processVariables = new LinkedHashMap<>();
         message.fields().forEachRemaining(f -> processVariables.put(f.getKey(), typed(f.getValue())));
 
+        String messageName = topic.endsWith(ENGINE_SUFFIX)
+                ? topic.substring(0, topic.length() - ENGINE_SUFFIX.length())
+                : topic;
+
         Map<String, Object> correlation = new LinkedHashMap<>();
-        correlation.put("messageName", topic);
+        correlation.put("messageName", messageName);
         correlation.put("businessKey", businessKey);
         correlation.put("processVariables", processVariables);
 
         ex.getIn().setHeader("businessKey", businessKey);
-        ex.getIn().setHeader("messageName", topic);
+        ex.getIn().setHeader("messageName", messageName);
         ex.getIn().setBody(M.writeValueAsString(correlation));
     }
 
