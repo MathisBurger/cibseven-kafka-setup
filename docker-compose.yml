@@ -59,6 +59,7 @@ services:
     restart: unless-stopped
 
   cibseven:
+    container_name: cibseven
     build:
       context: ./processengine
       dockerfile: Dockerfile
@@ -66,6 +67,7 @@ services:
       - "8080:8080"
 
   sidecar:
+    container_name: sidecar
     build:
       context: ./sidecar
       dockerfile: Dockerfile
