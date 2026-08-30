@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.example</groupId>
+  <artifactId>businesskey-connector-plugin</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <engine.libs.dir>/opt/engine-libs</engine.libs.dir>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cibseven.bpm</groupId>
+      <artifactId>cibseven-engine</artifactId>
+      <version>2.2.0</version>
+      <scope>system</scope>
+      <systemPath>${engine.libs.dir}/cibseven-engine.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>org.cibseven.connect</groupId>
+      <artifactId>cibseven-connect-core</artifactId>
+      <version>2.2.0</version>
+      <scope>system</scope>
+      <systemPath>${engine.libs.dir}/cibseven-connect-core.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>org.cibseven.connect</groupId>
+      <artifactId>cibseven-connect-connectors-all</artifactId>
+      <version>2.2.0</version>
+      <scope>system</scope>
+      <systemPath>${engine.libs.dir}/cibseven-connect-connectors-all.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>org.cibseven.bpm</groupId>
+      <artifactId>cibseven-engine-plugin-connect</artifactId>
+      <version>2.2.0</version>
+      <scope>system</scope>
+      <systemPath>${engine.libs.dir}/cibseven-engine-plugin-connect.jar</systemPath>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>businesskey-connector-plugin</finalName>
+  </build>
+</project>

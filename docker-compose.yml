@@ -59,7 +59,9 @@ services:
     restart: unless-stopped
 
   cibseven:
-    image: cibseven/cibseven:tomcat-latest
+    build:
+      context: ./processengine
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
 
